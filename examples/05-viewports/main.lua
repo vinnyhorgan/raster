@@ -37,6 +37,7 @@ end
 
 function rs.draw()
 	local width, height = rs.window.getDimensions()
+	gl.viewport(0, 0, width, height)
 	gl.clearColor(0.03, 0.03, 0.045, 1)
 	gl.clear(gl.COLOR_BUFFER_BIT)
 	draw_viewport(0, 0, width / 2, height / 2, 3, 0)

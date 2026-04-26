@@ -3,7 +3,7 @@ package dev.dvh.raster.modules;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
-import static org.lwjgl.opengl.GL11.GL_LINEAR;
+import static org.lwjgl.opengl.GL11.GL_NEAREST;
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_RED;
 import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
@@ -78,7 +78,7 @@ public final class DebugModule implements AutoCloseable {
   private static final int FIRST_CHAR = 32;
   private static final int CHAR_COUNT = 96;
   private static final int ATLAS_SIZE = 1024;
-  private static final float BAKED_SIZE = 32;
+  private static final float BAKED_SIZE = 64;
   private static final int STRIDE = 4 * Float.BYTES;
 
   private final WindowModule window;
@@ -204,10 +204,10 @@ public final class DebugModule implements AutoCloseable {
         codepoint = '?';
       }
       STBTTBakedChar glyph = font.characters.get(codepoint - FIRST_CHAR);
-      float x0 = cursorX + glyph.xoff() * scale;
-      float y0 = cursorY + glyph.yoff() * scale;
-      float x1 = x0 + (glyph.x1() - glyph.x0()) * scale;
-      float y1 = y0 + (glyph.y1() - glyph.y0()) * scale;
+      float x0 = Math.round(cursorX + glyph.xoff() * scale);
+      float y0 = Math.round(cursorY + glyph.yoff() * scale);
+      float x1 = Math.round(x0 + (glyph.x1() - glyph.x0()) * scale);
+      float y1 = Math.round(y0 + (glyph.y1() - glyph.y0()) * scale);
       float u0 = glyph.x0() / (float) ATLAS_SIZE;
       float v0 = glyph.y0() / (float) ATLAS_SIZE;
       float u1 = glyph.x1() / (float) ATLAS_SIZE;
@@ -415,8 +415,8 @@ public final class DebugModule implements AutoCloseable {
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
       glTexImage2D(
           GL_TEXTURE_2D, 0, GL_R8, ATLAS_SIZE, ATLAS_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       glBindTexture(GL_TEXTURE_2D, 0);

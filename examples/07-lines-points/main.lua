@@ -2,6 +2,8 @@ local gl = rs.gl
 local time = 0
 
 local function setup_camera()
+	local width, height = rs.window.getDimensions()
+	gl.viewport(0, 0, width, height)
 	gl.matrixMode(gl.PROJECTION)
 	gl.loadIdentity()
 	gl.ortho(0, 1000, 700, 0, -1, 1)
