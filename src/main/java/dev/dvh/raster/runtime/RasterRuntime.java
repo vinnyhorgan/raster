@@ -9,6 +9,7 @@ import dev.dvh.raster.modules.MouseModule;
 import dev.dvh.raster.modules.SystemModule;
 import dev.dvh.raster.modules.TimerModule;
 import dev.dvh.raster.modules.WindowModule;
+import dev.dvh.raster.tools.Stylua;
 import dev.dvh.raster.vfs.VirtualFileSystem;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +30,7 @@ public final class RasterRuntime {
   }
 
   public void run() {
+    Stylua.check(options.sourceDirectory());
     VirtualFileSystem filesystem = new VirtualFileSystem(options.sourceDirectory());
     try (LuaJit lua = LuaJit.create()) {
       install(lua, filesystem);

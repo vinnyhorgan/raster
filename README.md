@@ -45,8 +45,8 @@ mvn package
 
 This creates a self-contained, executable distribution JAR at
 `target/raster-0.1.0-SNAPSHOT.jar`. It includes runtime dependencies and LWJGL
-Linux natives, plus the LuaJIT JNI runtime for Linux x64, so it can be run
-without assembling a separate classpath.
+Linux natives, plus the LuaJIT JNI runtime and StyLua binary for Linux x64, so
+it can be run without assembling a separate classpath.
 
 ## Lua Projects
 
@@ -79,6 +79,11 @@ end
 
 Initial modules include `rs.window`, `rs.timer`, `rs.system`, `rs.mouse`,
 `rs.keyboard`, and `rs.filesystem`.
+
+Raster enforces default StyLua formatting for all `.lua` files in the project
+source directory before startup. The bundled StyLua binary runs in check mode
+with config and EditorConfig discovery disabled, so `stylua.toml` and
+`.editorconfig` files cannot change the required style.
 
 ## LuaJIT
 
@@ -122,7 +127,8 @@ mvn spotless:apply
 Formatting is enforced by Spotless during Maven's `validate` phase. Java sources
 are formatted with `google-java-format`, C sources are formatted with
 `clang-format` using the Google style, Markdown files are formatted with Flexmark,
-and `pom.xml` is formatted with SortPom.
+and `pom.xml` is formatted with SortPom. Raster project Lua files are checked at
+runtime with the embedded StyLua binary using StyLua's built-in default style.
 
 Run the packaged jar:
 
