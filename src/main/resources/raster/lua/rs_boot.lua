@@ -12,6 +12,7 @@ local function defaults()
 			mouse = true,
 			keyboard = true,
 			filesystem = true,
+			gl = true,
 		},
 		window = {
 			width = 800,

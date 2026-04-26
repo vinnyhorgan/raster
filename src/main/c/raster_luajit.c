@@ -64,6 +64,49 @@ static void release_utf_chars(JNIEnv* env, jstring value, const char* chars) {
 static jobject make_lua_value(JNIEnv* env, lua_State* lua, int index,
                               int depth);
 
+static int owner_ref_gc(lua_State* lua) {
+  if (raster_vm == NULL) return 0;
+  JNIEnv* env = NULL;
+  if ((*raster_vm)->GetEnv(raster_vm, (void**)&env, JNI_VERSION_1_8) !=
+      JNI_OK) {
+    return 0;
+  }
+  jobject* ref = (jobject*)lua_touserdata(lua, 1);
+  if (ref != NULL && *ref != NULL) {
+    (*env)->DeleteGlobalRef(env, *ref);
+    *ref = NULL;
+  }
+  return 0;
+}
+
+static void ensure_owner_ref_metatable(lua_State* lua) {
+  if (luaL_newmetatable(lua, "raster.owner_ref")) {
+    lua_pushcfunction(lua, owner_ref_gc);
+    lua_setfield(lua, -2, "__gc");
+  }
+  lua_pop(lua, 1);
+}
+
+static void push_owner_ref(JNIEnv* env, lua_State* lua, jobject owner) {
+  ensure_owner_ref_metatable(lua);
+  jobject* ref = (jobject*)lua_newuserdata(lua, sizeof(jobject));
+  *ref = (*env)->NewGlobalRef(env, owner);
+  luaL_getmetatable(lua, "raster.owner_ref");
+  lua_setmetatable(lua, -2);
+}
+
+static int string_to_positive_integer_key(const char* chars, lua_Integer* key) {
+  if (chars == NULL || *chars == '\0') return 0;
+  lua_Integer value = 0;
+  for (const char* cursor = chars; *cursor != '\0'; cursor++) {
+    if (*cursor < '0' || *cursor > '9') return 0;
+    value = value * 10 + (*cursor - '0');
+  }
+  if (value < 1) return 0;
+  *key = value;
+  return 1;
+}
+
 static jobject make_nil(JNIEnv* env) {
   jclass cls = (*env)->FindClass(env, "dev/dvh/raster/lua/LuaValue");
   if (cls == NULL) return NULL;
@@ -261,7 +304,12 @@ static void push_java_value(JNIEnv* env, lua_State* lua, jobject value) {
       jobject child = (*env)->CallObjectMethod(env, entry, get_value);
       const char* chars = get_utf_chars(env, key);
       if (chars != NULL) {
-        lua_pushstring(lua, chars);
+        lua_Integer integer_key = 0;
+        if (string_to_positive_integer_key(chars, &integer_key)) {
+          lua_pushinteger(lua, integer_key);
+        } else {
+          lua_pushstring(lua, chars);
+        }
         push_java_value(env, lua, child);
         lua_settable(lua, -3);
         release_utf_chars(env, key, chars);
@@ -279,7 +327,11 @@ static int java_function_dispatch(lua_State* lua) {
           JNI_OK) {
     return luaL_error(lua, "Java VM is unavailable");
   }
-  jobject owner = (jobject)lua_touserdata(lua, lua_upvalueindex(1));
+  jobject* owner_ref = (jobject*)lua_touserdata(lua, lua_upvalueindex(1));
+  jobject owner = owner_ref == NULL ? NULL : *owner_ref;
+  if (owner == NULL) {
+    return luaL_error(lua, "Java callback owner is unavailable");
+  }
   int function_id = (int)lua_tointeger(lua, lua_upvalueindex(2));
   int count = lua_gettop(lua);
   jobjectArray args = make_argument_array(env, lua, 1, count);
@@ -664,8 +716,7 @@ JNIEXPORT void JNICALL Java_dev_dvh_raster_lua_LuaJit_registerFunction(
   while (next != NULL) {
     char* after = strtok_r(NULL, ".", &save);
     if (after == NULL) {
-      jobject ref = (*env)->NewGlobalRef(env, owner);
-      lua_pushlightuserdata(lua, ref);
+      push_owner_ref(env, lua, owner);
       lua_pushinteger(lua, function_id);
       lua_pushcclosure(lua, java_function_dispatch, 2);
       lua_setfield(lua, -2, next);
@@ -684,8 +735,7 @@ JNIEXPORT void JNICALL Java_dev_dvh_raster_lua_LuaJit_registerFunction(
     next = after;
   }
 
-  jobject ref = (*env)->NewGlobalRef(env, owner);
-  lua_pushlightuserdata(lua, ref);
+  push_owner_ref(env, lua, owner);
   lua_pushinteger(lua, function_id);
   lua_pushcclosure(lua, java_function_dispatch, 2);
   lua_setfield(lua, -2, token);

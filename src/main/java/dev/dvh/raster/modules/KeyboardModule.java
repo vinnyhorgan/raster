@@ -30,8 +30,6 @@ public final class KeyboardModule {
           Map.entry("s", GLFW_KEY_S),
           Map.entry("d", GLFW_KEY_D));
 
-  private boolean keyRepeat = true;
-
   public void install(LuaJit lua, WindowModule window) {
     lua.registerFunction(
         "rs.keyboard.isDown",
@@ -44,11 +42,11 @@ public final class KeyboardModule {
     lua.registerFunction(
         "rs.keyboard.setKeyRepeat",
         args -> {
-          keyRepeat = args.length == 0 || args[0].asBoolean();
+          window.setKeyRepeat(args.length == 0 || args[0].asBoolean());
           return LuaValue.array();
         });
     lua.registerFunction(
-        "rs.keyboard.hasKeyRepeat", args -> LuaValue.array(LuaValue.bool(keyRepeat)));
+        "rs.keyboard.hasKeyRepeat", args -> LuaValue.array(LuaValue.bool(window.hasKeyRepeat())));
   }
 
   private static int keyCode(LuaValue value) {

@@ -5,10 +5,6 @@ import dev.dvh.raster.lua.LuaValue;
 
 public final class MouseModule {
 
-  private boolean visible = true;
-  private boolean grabbed;
-  private boolean relativeMode;
-
   public void install(LuaJit lua, WindowModule window) {
     lua.registerFunction(
         "rs.mouse.getPosition",
@@ -25,26 +21,29 @@ public final class MouseModule {
         args ->
             LuaValue.array(
                 LuaValue.bool(args.length > 0 && window.isMouseDown(args[0].asInt(1) - 1))));
-    lua.registerFunction("rs.mouse.isVisible", args -> LuaValue.array(LuaValue.bool(visible)));
+    lua.registerFunction(
+        "rs.mouse.isVisible", args -> LuaValue.array(LuaValue.bool(window.isMouseVisible())));
     lua.registerFunction(
         "rs.mouse.setVisible",
         args -> {
-          visible = args.length == 0 || args[0].asBoolean();
+          window.setMouseVisible(args.length == 0 || args[0].asBoolean());
           return LuaValue.array();
         });
-    lua.registerFunction("rs.mouse.isGrabbed", args -> LuaValue.array(LuaValue.bool(grabbed)));
+    lua.registerFunction(
+        "rs.mouse.isGrabbed", args -> LuaValue.array(LuaValue.bool(window.isMouseGrabbed())));
     lua.registerFunction(
         "rs.mouse.setGrabbed",
         args -> {
-          grabbed = args.length > 0 && args[0].asBoolean();
+          window.setMouseGrabbed(args.length > 0 && args[0].asBoolean());
           return LuaValue.array();
         });
     lua.registerFunction(
-        "rs.mouse.getRelativeMode", args -> LuaValue.array(LuaValue.bool(relativeMode)));
+        "rs.mouse.getRelativeMode",
+        args -> LuaValue.array(LuaValue.bool(window.isRelativeMouseMode())));
     lua.registerFunction(
         "rs.mouse.setRelativeMode",
         args -> {
-          relativeMode = args.length > 0 && args[0].asBoolean();
+          window.setRelativeMouseMode(args.length > 0 && args[0].asBoolean());
           return LuaValue.array();
         });
   }

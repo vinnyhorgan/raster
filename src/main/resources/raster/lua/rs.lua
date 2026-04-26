@@ -13,6 +13,7 @@ rs.window = rs.window or {}
 rs.system = rs.system or {}
 rs.keyboard = rs.keyboard or {}
 rs.mouse = rs.mouse or {}
+rs.gl = rs.gl or {}
 
 function rs.filesystem.load(path)
 	local source = rs.__readFile(path)

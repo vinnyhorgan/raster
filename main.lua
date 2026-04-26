@@ -1,4 +1,4 @@
-function rs.init() end
+function rs.load() end
 
 function rs.update(dt) end
 

@@ -1,6 +1,10 @@
 package dev.dvh.raster.modules;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_DISABLED;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN;
+import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_NORMAL;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
 import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
@@ -25,6 +29,7 @@ import static org.lwjgl.glfw.GLFW.glfwSetClipboardString;
 import static org.lwjgl.glfw.GLFW.glfwSetCursorPosCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetErrorCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetFramebufferSizeCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetInputMode;
 import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetMouseButtonCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetScrollCallback;
@@ -37,9 +42,6 @@ import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
 import static org.lwjgl.glfw.GLFW.glfwTerminate;
 import static org.lwjgl.glfw.GLFW.glfwWindowHint;
 import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
-import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
@@ -61,6 +63,12 @@ public final class WindowModule implements AutoCloseable {
   private int height = 600;
   private boolean visible = true;
   private boolean vsync = true;
+  private boolean keyRepeat = true;
+  private boolean cursorVisible = true;
+  private boolean cursorGrabbed;
+  private boolean relativeMouseMode;
+  private double mouseX;
+  private double mouseY;
   private Queue<RasterEvent> events;
 
   public void install(LuaJit lua) {
@@ -125,6 +133,10 @@ public final class WindowModule implements AutoCloseable {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(vsync ? 1 : 0);
     GL.createCapabilities();
+    double[] position = mousePosition();
+    mouseX = position[0];
+    mouseY = position[1];
+    applyCursorMode();
     glClearColor(0.07f, 0.07f, 0.08f, 1.0f);
     if (visible) {
       glfwShowWindow(window);
@@ -155,7 +167,6 @@ public final class WindowModule implements AutoCloseable {
   }
 
   public void present() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(window);
   }
 
@@ -193,6 +204,41 @@ public final class WindowModule implements AutoCloseable {
 
   public boolean isMouseDown(int button) {
     return window != 0 && glfwGetMouseButton(window, button) == GLFW_PRESS;
+  }
+
+  public void setKeyRepeat(boolean keyRepeat) {
+    this.keyRepeat = keyRepeat;
+  }
+
+  public boolean hasKeyRepeat() {
+    return keyRepeat;
+  }
+
+  public void setMouseVisible(boolean visible) {
+    cursorVisible = visible;
+    applyCursorMode();
+  }
+
+  public boolean isMouseVisible() {
+    return cursorVisible;
+  }
+
+  public void setMouseGrabbed(boolean grabbed) {
+    cursorGrabbed = grabbed;
+    applyCursorMode();
+  }
+
+  public boolean isMouseGrabbed() {
+    return cursorGrabbed;
+  }
+
+  public void setRelativeMouseMode(boolean enabled) {
+    relativeMouseMode = enabled;
+    applyCursorMode();
+  }
+
+  public boolean isRelativeMouseMode() {
+    return relativeMouseMode;
   }
 
   public double[] mousePosition() {
@@ -235,6 +281,19 @@ public final class WindowModule implements AutoCloseable {
     }
   }
 
+  private void applyCursorMode() {
+    if (window == 0) {
+      return;
+    }
+    int mode = GLFW_CURSOR_NORMAL;
+    if (relativeMouseMode || cursorGrabbed) {
+      mode = GLFW_CURSOR_DISABLED;
+    } else if (!cursorVisible) {
+      mode = GLFW_CURSOR_HIDDEN;
+    }
+    glfwSetInputMode(window, GLFW_CURSOR, mode);
+  }
+
   private LuaValue modeTable() {
     Map<String, LuaValue> table = new LinkedHashMap<>();
     table.put("width", LuaValue.number(width));
@@ -258,7 +317,7 @@ public final class WindowModule implements AutoCloseable {
     glfwSetKeyCallback(
         window,
         (window, key, scancode, action, mods) -> {
-          if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+          if (action == GLFW_PRESS || (action == GLFW_REPEAT && keyRepeat)) {
             events.add(
                 new RasterEvent(
                     "keypressed",
@@ -285,15 +344,20 @@ public final class WindowModule implements AutoCloseable {
                     LuaValue.array(LuaValue.string(new String(Character.toChars(codepoint)))))));
     glfwSetCursorPosCallback(
         window,
-        (window, x, y) ->
-            events.add(
-                new RasterEvent(
-                    "mousemoved",
-                    LuaValue.array(
-                        LuaValue.number(x),
-                        LuaValue.number(y),
-                        LuaValue.number(0),
-                        LuaValue.number(0)))));
+        (window, x, y) -> {
+          double dx = x - mouseX;
+          double dy = y - mouseY;
+          mouseX = x;
+          mouseY = y;
+          events.add(
+              new RasterEvent(
+                  "mousemoved",
+                  LuaValue.array(
+                      LuaValue.number(x),
+                      LuaValue.number(y),
+                      LuaValue.number(dx),
+                      LuaValue.number(dy))));
+        });
     glfwSetMouseButtonCallback(
         window,
         (window, button, action, mods) -> {

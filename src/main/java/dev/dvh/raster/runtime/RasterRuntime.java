@@ -4,6 +4,7 @@ import dev.dvh.raster.cli.CliOptions;
 import dev.dvh.raster.lua.LuaJit;
 import dev.dvh.raster.lua.LuaValue;
 import dev.dvh.raster.modules.FilesystemModule;
+import dev.dvh.raster.modules.GlModule;
 import dev.dvh.raster.modules.KeyboardModule;
 import dev.dvh.raster.modules.MouseModule;
 import dev.dvh.raster.modules.SystemModule;
@@ -25,6 +26,7 @@ public final class RasterRuntime {
   private final Queue<RasterEvent> events = new ArrayDeque<>();
   private final WindowModule window = new WindowModule();
   private final TimerModule timer = new TimerModule();
+  private final GlModule gl = new GlModule();
 
   public RasterRuntime(CliOptions options) {
     this.options = options;
@@ -48,6 +50,7 @@ public final class RasterRuntime {
       timer.step();
       loop(lua);
     } finally {
+      gl.close();
       window.close();
     }
   }
@@ -94,6 +97,7 @@ public final class RasterRuntime {
     preloadCompat53(lua);
     timer.install(lua);
     window.install(lua);
+    gl.install(lua);
     new SystemModule().install(lua, window);
     new KeyboardModule().install(lua, window);
     new MouseModule().install(lua, window);
