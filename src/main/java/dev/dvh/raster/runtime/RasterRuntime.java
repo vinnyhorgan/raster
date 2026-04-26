@@ -91,11 +91,52 @@ public final class RasterRuntime {
                 LuaValue.number(0),
                 LuaValue.string("bootstrap")));
     new FilesystemModule(filesystem).install(lua);
+    preloadCompat53(lua);
     timer.install(lua);
     window.install(lua);
     new SystemModule().install(lua, window);
     new KeyboardModule().install(lua, window);
     new MouseModule().install(lua, window);
+  }
+
+  private void preloadCompat53(LuaJit lua) {
+    String moduleSource = readResource("compat53/module.lua");
+    String fileMtSource = readResource("compat53/file_mt.lua");
+    String initSource = readResource("compat53/init.lua");
+    lua.execute(
+        "package.preload['compat53.module'] = load("
+            + luaString(moduleSource)
+            + ", '@compat53/module.lua')\n"
+            + "package.preload['compat53.file_mt'] = load("
+            + luaString(fileMtSource)
+            + ", '@compat53/file_mt.lua')\n"
+            + "package.preload['compat53'] = load("
+            + luaString(initSource)
+            + ", '@compat53/init.lua')\n"
+            + "package.preload['compat53.init'] = package.preload['compat53']\n",
+        "=(compat53 preload)");
+  }
+
+  private static String luaString(String raw) {
+    return "\""
+        + raw.replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\0", "\\0")
+        + "\"";
+  }
+
+  private static String readResource(String name) {
+    String path = "/raster/lua/" + name;
+    try (InputStream input = RasterRuntime.class.getResourceAsStream(path)) {
+      if (input == null) {
+        throw new IllegalStateException("Missing runtime Lua resource: " + path);
+      }
+      return new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to read runtime Lua resource: " + path, e);
+    }
   }
 
   private LuaValue callBoot(LuaJit lua) {

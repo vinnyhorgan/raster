@@ -223,6 +223,9 @@
             <includes>
               <include>**/*.md</include>
             </includes>
+            <excludes>
+              <exclude>lua-compat-5.3/**</exclude>
+            </excludes>
             <flexmark/>
           </markdown>
           <pom>

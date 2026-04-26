@@ -4,9 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compat-5.3.h"
 #include "lauxlib.h"
 #include "lua.h"
 #include "lualib.h"
+
+extern int luaopen_compat53_utf8(lua_State* L);
+extern int luaopen_compat53_string(lua_State* L);
+extern int luaopen_compat53_table(lua_State* L);
+extern int luaopen_compat53_io(lua_State* L);
 
 static JavaVM* raster_vm = NULL;
 
@@ -330,6 +336,11 @@ JNIEXPORT void JNICALL Java_dev_dvh_raster_lua_LuaJit_openLibraries(
     return;
   }
   luaL_openlibs(lua);
+  luaL_requiref(lua, "compat53.utf8", luaopen_compat53_utf8, 0);
+  luaL_requiref(lua, "compat53.string", luaopen_compat53_string, 0);
+  luaL_requiref(lua, "compat53.table", luaopen_compat53_table, 0);
+  luaL_requiref(lua, "compat53.io", luaopen_compat53_io, 0);
+  lua_pop(lua, 4);
 }
 
 JNIEXPORT void JNICALL
