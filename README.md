@@ -74,7 +74,8 @@ end
 Optional `conf.lua` files can configure project identity, window title,
 visibility, and vsync before `main.lua` is loaded. Raster always renders to a
 fixed 640x480 canvas; the OS window starts at 640x480, is always resizable, and
-letterboxes the canvas with black borders when resized.
+letterboxes the canvas with black borders when resized. The minimum window size
+is 320x240, and Alt+Enter toggles fullscreen.
 
 ```lua
 function rs.conf(t)

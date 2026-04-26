@@ -5,8 +5,12 @@ import static org.lwjgl.glfw.GLFW.GLFW_CURSOR;
 import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_DISABLED;
 import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN;
 import static org.lwjgl.glfw.GLFW.GLFW_CURSOR_NORMAL;
+import static org.lwjgl.glfw.GLFW.GLFW_DONT_CARE;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER;
 import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER;
+import static org.lwjgl.glfw.GLFW.GLFW_MOD_ALT;
 import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 import static org.lwjgl.glfw.GLFW.GLFW_RELEASE;
 import static org.lwjgl.glfw.GLFW.GLFW_REPEAT;
@@ -21,6 +25,10 @@ import static org.lwjgl.glfw.GLFW.glfwGetCursorPos;
 import static org.lwjgl.glfw.GLFW.glfwGetFramebufferSize;
 import static org.lwjgl.glfw.GLFW.glfwGetKey;
 import static org.lwjgl.glfw.GLFW.glfwGetMouseButton;
+import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
+import static org.lwjgl.glfw.GLFW.glfwGetVideoMode;
+import static org.lwjgl.glfw.GLFW.glfwGetWindowPos;
+import static org.lwjgl.glfw.GLFW.glfwGetWindowSize;
 import static org.lwjgl.glfw.GLFW.glfwHideWindow;
 import static org.lwjgl.glfw.GLFW.glfwInit;
 import static org.lwjgl.glfw.GLFW.glfwMakeContextCurrent;
@@ -34,7 +42,9 @@ import static org.lwjgl.glfw.GLFW.glfwSetInputMode;
 import static org.lwjgl.glfw.GLFW.glfwSetKeyCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetMouseButtonCallback;
 import static org.lwjgl.glfw.GLFW.glfwSetScrollCallback;
+import static org.lwjgl.glfw.GLFW.glfwSetWindowMonitor;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose;
+import static org.lwjgl.glfw.GLFW.glfwSetWindowSizeLimits;
 import static org.lwjgl.glfw.GLFW.glfwSetWindowTitle;
 import static org.lwjgl.glfw.GLFW.glfwShowWindow;
 import static org.lwjgl.glfw.GLFW.glfwSwapBuffers;
@@ -127,6 +137,8 @@ public final class WindowModule implements AutoCloseable {
 
   public static final int LOGICAL_WIDTH = 640;
   public static final int LOGICAL_HEIGHT = 480;
+  public static final int MIN_WINDOW_WIDTH = 320;
+  public static final int MIN_WINDOW_HEIGHT = 240;
 
   private static final int STRIDE = 4 * Float.BYTES;
 
@@ -137,8 +149,13 @@ public final class WindowModule implements AutoCloseable {
   private int height = LOGICAL_HEIGHT;
   private int framebufferWidth = LOGICAL_WIDTH;
   private int framebufferHeight = LOGICAL_HEIGHT;
+  private int windowedX;
+  private int windowedY;
+  private int windowedWidth = LOGICAL_WIDTH;
+  private int windowedHeight = LOGICAL_HEIGHT;
   private boolean visible = true;
   private boolean vsync = true;
+  private boolean fullscreen;
   private boolean keyRepeat = true;
   private boolean cursorVisible = true;
   private boolean cursorGrabbed;
@@ -211,6 +228,8 @@ public final class WindowModule implements AutoCloseable {
     if (window == NULL) {
       throw new IllegalStateException("Failed to create the GLFW window");
     }
+    glfwSetWindowSizeLimits(
+        window, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT, GLFW_DONT_CARE, GLFW_DONT_CARE);
     installCallbacks();
     glfwMakeContextCurrent(window);
     glfwSwapInterval(vsync ? 1 : 0);
@@ -433,7 +452,45 @@ public final class WindowModule implements AutoCloseable {
     table.put("title", LuaValue.string(title));
     table.put("visible", LuaValue.bool(visible));
     table.put("vsync", LuaValue.bool(vsync));
+    table.put("fullscreen", LuaValue.bool(fullscreen));
     return LuaValue.table(table);
+  }
+
+  private void toggleFullscreen() {
+    if (window == 0) {
+      return;
+    }
+    if (fullscreen) {
+      glfwSetWindowMonitor(
+          window, NULL, windowedX, windowedY, windowedWidth, windowedHeight, GLFW_DONT_CARE);
+      glfwSetWindowSizeLimits(
+          window, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT, GLFW_DONT_CARE, GLFW_DONT_CARE);
+      fullscreen = false;
+    } else {
+      int[] x = new int[1];
+      int[] y = new int[1];
+      int[] width = new int[1];
+      int[] height = new int[1];
+      glfwGetWindowPos(window, x, y);
+      glfwGetWindowSize(window, width, height);
+      windowedX = x[0];
+      windowedY = y[0];
+      windowedWidth = Math.max(MIN_WINDOW_WIDTH, width[0]);
+      windowedHeight = Math.max(MIN_WINDOW_HEIGHT, height[0]);
+
+      long monitor = glfwGetPrimaryMonitor();
+      if (monitor == NULL) {
+        return;
+      }
+      var mode = glfwGetVideoMode(monitor);
+      if (mode == null) {
+        return;
+      }
+      glfwSetWindowMonitor(window, monitor, 0, 0, mode.width(), mode.height(), mode.refreshRate());
+      fullscreen = true;
+    }
+    glfwSwapInterval(vsync ? 1 : 0);
+    updateFramebufferSize();
   }
 
   private void createCanvas() {
@@ -608,6 +665,12 @@ public final class WindowModule implements AutoCloseable {
     glfwSetKeyCallback(
         window,
         (window, key, scancode, action, mods) -> {
+          if (action == GLFW_PRESS
+              && (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER)
+              && (mods & GLFW_MOD_ALT) != 0) {
+            toggleFullscreen();
+            return;
+          }
           if (action == GLFW_PRESS || (action == GLFW_REPEAT && keyRepeat)) {
             events.add(
                 new RasterEvent(

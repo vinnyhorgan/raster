@@ -50,7 +50,8 @@ and callback layer.
 - Rendering is fixed at a logical 640x480. `WindowModule` binds a 640x480 FBO
   before Lua drawing, then upscales it into the resizable OS window with
   aspect-preserving letterbox borders. Window size/resizability config is
-  intentionally ignored; `rs.window.getDimensions()` reports 640x480.
+  intentionally ignored; `rs.window.getDimensions()` reports 640x480. The OS
+  window minimum size is 320x240, and Alt+Enter toggles fullscreen.
 - Current exposed modules include `rs.window`, `rs.timer`, `rs.system`,
   `rs.mouse`, `rs.keyboard`, `rs.filesystem`, `rs.gl`, and `rs.debug`.
 - `rs.gl` currently implements the immediate-mode foundation with modern
