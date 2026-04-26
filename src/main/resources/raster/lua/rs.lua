@@ -47,6 +47,8 @@ end
 
 require("compat53")
 
+rs.inspect = require("inspect")
+
 local function raster_loader(module)
 	local path = rs.__findRequire(module)
 	if not path then

@@ -35,17 +35,29 @@ public final class Selene {
     }
   }
 
+  private static final List<String> EXCLUDED_DIRS =
+      List.of("love", "lj2", "lua-compat-5.3", "src", "target", "scripts", "vendor");
+
   private static List<Path> luaFiles(Path sourceDirectory) {
     try (Stream<Path> paths = Files.walk(sourceDirectory)) {
       return paths
           .filter(Files::isRegularFile)
           .filter(path -> path.getFileName().toString().endsWith(".lua"))
+          .filter(path -> !isUnderExcludedDir(sourceDirectory, path))
           .map(path -> path.toAbsolutePath().normalize())
           .sorted()
           .toList();
     } catch (IOException e) {
       throw new IllegalStateException("Unable to scan Lua files for linting: " + e.getMessage(), e);
     }
+  }
+
+  private static boolean isUnderExcludedDir(Path root, Path path) {
+    Path rel = root.toAbsolutePath().relativize(path.toAbsolutePath());
+    if (rel.getNameCount() < 2) {
+      return false;
+    }
+    return EXCLUDED_DIRS.contains(rel.getName(0).toString());
   }
 
   private static void run(Path selene, Path config, List<Path> luaFiles) {

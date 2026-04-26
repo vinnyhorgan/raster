@@ -115,6 +115,10 @@ public final class RasterRuntime {
             + ", '@compat53/init.lua')\n"
             + "package.preload['compat53.init'] = package.preload['compat53']\n",
         "=(compat53 preload)");
+    String inspectSource = readResource("inspect.lua");
+    lua.execute(
+        "package.preload['inspect'] = load(" + luaString(inspectSource) + ", '@inspect.lua')\n",
+        "=(inspect preload)");
   }
 
   private static String luaString(String raw) {
