@@ -38,7 +38,7 @@ Formatting is enforced by Spotless during Maven's `validate` phase. Java sources
 Run the packaged jar:
 
 ```sh
-__GL_THREADED_OPTIMIZATIONS=0 java -jar target/raster-0.1.0-SNAPSHOT.jar
+__GL_THREADED_OPTIMIZATIONS=0 java --enable-native-access=ALL-UNNAMED -jar target/raster-0.1.0-SNAPSHOT.jar
 ```
 
 ## Stack
