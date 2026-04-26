@@ -21,6 +21,10 @@ Build the project:
 mvn package
 ```
 
+This creates a self-contained, executable distribution JAR at
+`target/raster-0.1.0-SNAPSHOT.jar`. It includes runtime dependencies and LWJGL
+Linux natives, so it can be run without assembling a separate classpath.
+
 Check formatting:
 
 ```sh
