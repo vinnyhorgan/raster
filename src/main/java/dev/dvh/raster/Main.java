@@ -28,6 +28,7 @@ import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
+import dev.dvh.raster.lua.LuaJit;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -38,6 +39,7 @@ public final class Main {
 
   public void run() {
     System.out.println("Hello LWJGL " + Version.getVersion() + "!");
+    runLuaJitHelloWorld();
 
     init();
     loop();
@@ -46,6 +48,18 @@ public final class Main {
     glfwDestroyWindow(window);
     glfwTerminate();
     glfwSetErrorCallback(null).free();
+  }
+
+  private void runLuaJitHelloWorld() {
+    try (LuaJit lua = LuaJit.create()) {
+      lua.setGlobal("engine", "Raster");
+      lua.execute(
+          "message = 'Hello from LuaJIT embedded in ' .. engine\n" + "answer = 40 + 2",
+          "=raster_bootstrap");
+
+      System.out.println(lua.getGlobalString("message"));
+      System.out.println("LuaJIT answer: " + lua.getGlobalNumber("answer"));
+    }
   }
 
   private void init() {
