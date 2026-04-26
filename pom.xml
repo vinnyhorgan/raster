@@ -49,10 +49,6 @@
     </dependency>
     <dependency>
       <groupId>org.lwjgl</groupId>
-      <artifactId>lwjgl-nfd</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-openal</artifactId>
     </dependency>
     <dependency>
@@ -67,36 +63,37 @@
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl</artifactId>
       <classifier>${lwjgl.natives}</classifier>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-assimp</artifactId>
       <classifier>${lwjgl.natives}</classifier>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-glfw</artifactId>
       <classifier>${lwjgl.natives}</classifier>
-    </dependency>
-    <dependency>
-      <groupId>org.lwjgl</groupId>
-      <artifactId>lwjgl-nfd</artifactId>
-      <classifier>${lwjgl.natives}</classifier>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-openal</artifactId>
       <classifier>${lwjgl.natives}</classifier>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-opengl</artifactId>
       <classifier>${lwjgl.natives}</classifier>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl-stb</artifactId>
       <classifier>${lwjgl.natives}</classifier>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.joml</groupId>
