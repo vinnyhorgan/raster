@@ -13,6 +13,7 @@ local function defaults()
 			keyboard = true,
 			filesystem = true,
 			gl = true,
+			debug = true,
 		},
 		window = {
 			width = 800,
@@ -52,13 +53,16 @@ function rs.boot(mainfile)
 		rs.filesystem.setIdentity(config.identity)
 	end
 
+	return config
+end
+
+function rs.__loadMain(mainfile)
 	local main, err = rs.filesystem.load(mainfile or "main.lua")
 	if not main then
 		error(err or "missing main.lua", 0)
 	end
 	main()
 	rs.createhandlers()
-	return config
 end
 
 return rs

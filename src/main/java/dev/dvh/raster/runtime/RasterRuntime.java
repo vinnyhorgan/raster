@@ -1,8 +1,12 @@
 package dev.dvh.raster.runtime;
 
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE;
+
 import dev.dvh.raster.cli.CliOptions;
 import dev.dvh.raster.lua.LuaJit;
+import dev.dvh.raster.lua.LuaJitException;
 import dev.dvh.raster.lua.LuaValue;
+import dev.dvh.raster.modules.DebugModule;
 import dev.dvh.raster.modules.FilesystemModule;
 import dev.dvh.raster.modules.GlModule;
 import dev.dvh.raster.modules.KeyboardModule;
@@ -27,6 +31,7 @@ public final class RasterRuntime {
   private final WindowModule window = new WindowModule();
   private final TimerModule timer = new TimerModule();
   private final GlModule gl = new GlModule();
+  private final DebugModule debug = new DebugModule(window);
 
   public RasterRuntime(CliOptions options) {
     this.options = options;
@@ -41,15 +46,28 @@ public final class RasterRuntime {
       executeResource(lua, "rs.lua");
       executeResource(lua, "rs_callbacks.lua");
       executeResource(lua, "rs_boot.lua");
-      LuaValue config = callBoot(lua);
+      LuaValue config;
+      try {
+        config = callBoot(lua);
+      } catch (LuaJitException e) {
+        window.create(events, defaultWindow());
+        errorLoop(e.getMessage());
+        return;
+      }
       window.create(events, config.field("window"));
-      lua.call(
-          "rs.__runLoad",
-          argumentTable(options.gameArguments()),
-          argumentTable(options.rawArguments()));
-      timer.step();
-      loop(lua);
+      try {
+        lua.call("rs.__loadMain", LuaValue.string(options.mainFile()));
+        lua.call(
+            "rs.__runLoad",
+            argumentTable(options.gameArguments()),
+            argumentTable(options.rawArguments()));
+        timer.step();
+        loop(lua);
+      } catch (LuaJitException e) {
+        errorLoop(e.getMessage());
+      }
     } finally {
+      debug.close();
       gl.close();
       window.close();
     }
@@ -68,7 +86,13 @@ public final class RasterRuntime {
         LuaValue[] dispatchArgs = new LuaValue[event.arguments().length + 1];
         dispatchArgs[0] = LuaValue.string(event.name());
         System.arraycopy(event.arguments(), 0, dispatchArgs, 1, event.arguments().length);
-        LuaValue[] result = lua.call("rs.__dispatch", dispatchArgs);
+        LuaValue[] result;
+        try {
+          result = lua.call("rs.__dispatch", dispatchArgs);
+        } catch (LuaJitException e) {
+          errorLoop(e.getMessage());
+          return;
+        }
         if ("quit".equals(event.name())) {
           boolean canceled = result.length > 0 && result[0].isBoolean() && result[0].asBoolean();
           if (!canceled) {
@@ -77,10 +101,36 @@ public final class RasterRuntime {
         }
       }
       double delta = timer.step();
-      lua.call("rs.__update", LuaValue.number(delta));
-      lua.call("rs.__draw");
+      try {
+        lua.call("rs.__update", LuaValue.number(delta));
+        lua.call("rs.__draw");
+      } catch (LuaJitException e) {
+        errorLoop(e.getMessage());
+        return;
+      }
       window.present();
       lua.call("rs.timer.sleep", LuaValue.number(0.001));
+    }
+  }
+
+  private void errorLoop(String message) {
+    window.setTitle("Raster Error");
+    while (window.isOpen()) {
+      window.poll();
+      if (window.shouldClose() || window.isKeyDown(GLFW_KEY_ESCAPE)) {
+        window.closeWindow();
+      }
+      debug.renderError(window.getWidth(), window.getHeight(), message);
+      window.present();
+      sleepQuietly(16);
+    }
+  }
+
+  private static void sleepQuietly(long milliseconds) {
+    try {
+      Thread.sleep(milliseconds);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -98,6 +148,7 @@ public final class RasterRuntime {
     timer.install(lua);
     window.install(lua);
     gl.install(lua);
+    debug.install(lua);
     new SystemModule().install(lua, window);
     new KeyboardModule().install(lua, window);
     new MouseModule().install(lua, window);

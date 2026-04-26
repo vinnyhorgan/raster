@@ -184,6 +184,14 @@ public final class WindowModule implements AutoCloseable {
     return window != 0 && !glfwWindowShouldClose(window);
   }
 
+  public int getWidth() {
+    return width;
+  }
+
+  public int getHeight() {
+    return height;
+  }
+
   public String getClipboardText() {
     if (window == 0) {
       return "";
@@ -267,7 +275,7 @@ public final class WindowModule implements AutoCloseable {
     }
   }
 
-  private void setTitle(String title) {
+  public void setTitle(String title) {
     this.title = title == null ? "Raster" : title;
     if (window != 0) {
       glfwSetWindowTitle(window, this.title);

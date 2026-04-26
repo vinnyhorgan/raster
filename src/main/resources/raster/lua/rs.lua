@@ -14,6 +14,7 @@ rs.system = rs.system or {}
 rs.keyboard = rs.keyboard or {}
 rs.mouse = rs.mouse or {}
 rs.gl = rs.gl or {}
+rs.debug = rs.debug or {}
 
 function rs.filesystem.load(path)
 	local source = rs.__readFile(path)

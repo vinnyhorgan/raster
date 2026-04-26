@@ -78,7 +78,9 @@ end
 ```
 
 Initial modules include `rs.window`, `rs.timer`, `rs.system`, `rs.mouse`,
-`rs.keyboard`, and `rs.filesystem`.
+`rs.keyboard`, `rs.filesystem`, `rs.gl`, and `rs.debug`. `rs.debug.print` is a
+small text overlay helper intended for diagnostics, not a core fantasy-console
+text API.
 
 Raster enforces default StyLua formatting for all `.lua` files in the project
 source directory before startup. The bundled StyLua binary runs in check mode

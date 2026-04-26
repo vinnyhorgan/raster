@@ -22,4 +22,5 @@ blending, depth testing, culling, point/line sizing, and explicit matrix upload.
 - `07-lines-points`: point size, line width, line loops, and animated line
   strips.
 - `08-stress-grid`: many immediate-mode quads with animated colors.
+- `09-debug-text`: `rs.debug.print` text overlay rendered on top of GL output.
 
