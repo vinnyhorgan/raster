@@ -64,7 +64,12 @@ public final class RasterCli {
       throw new IllegalArgumentException("expected at most one project path");
     }
 
-    Path input = engine.isEmpty() ? Path.of("") : Path.of(engine.getFirst());
+    if (engine.isEmpty()) {
+      return new CliOptions(
+          false, false, true, null, "main.lua", List.copyOf(game), List.copyOf(all));
+    }
+
+    Path input = Path.of(engine.getFirst());
     Path absolute = input.toAbsolutePath().normalize();
     Path source;
     String main;
@@ -81,14 +86,14 @@ public final class RasterCli {
     if (!Files.exists(source.resolve(main))) {
       throw new IllegalArgumentException("missing " + source.resolve(main));
     }
-    return new CliOptions(false, false, source, main, List.copyOf(game), List.copyOf(all));
+    return new CliOptions(false, false, false, source, main, List.copyOf(game), List.copyOf(all));
   }
 
   private static void printHelp() {
     System.out.println(
         "Usage: raster [path] [-- game args...]\n"
             + "\n"
-            + "Runs a Raster project. If path is omitted, the current directory is used.\n"
+            + "Runs a Raster project. If path is omitted, Raster starts a built-in demo.\n"
             + "A project path may be a directory containing main.lua or a single .lua file.\n"
             + "\n"
             + "Options:\n"

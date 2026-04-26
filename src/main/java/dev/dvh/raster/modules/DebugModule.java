@@ -2,8 +2,9 @@ package dev.dvh.raster.modules;
 
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
-import static org.lwjgl.opengl.GL11.GL_NEAREST;
+import static org.lwjgl.opengl.GL11.GL_LINEAR;
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.opengl.GL11.GL_RED;
 import static org.lwjgl.opengl.GL11.GL_SRC_ALPHA;
@@ -22,6 +23,7 @@ import static org.lwjgl.opengl.GL11.glDisable;
 import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL11.glEnable;
 import static org.lwjgl.opengl.GL11.glGenTextures;
+import static org.lwjgl.opengl.GL11.glIsEnabled;
 import static org.lwjgl.opengl.GL11.glPixelStorei;
 import static org.lwjgl.opengl.GL11.glTexImage2D;
 import static org.lwjgl.opengl.GL11.glTexParameteri;
@@ -60,7 +62,10 @@ import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL30.glDeleteVertexArrays;
 import static org.lwjgl.opengl.GL30.glGenVertexArrays;
-import static org.lwjgl.stb.STBTruetype.stbtt_BakeFontBitmap;
+import static org.lwjgl.stb.STBTruetype.stbtt_PackBegin;
+import static org.lwjgl.stb.STBTruetype.stbtt_PackEnd;
+import static org.lwjgl.stb.STBTruetype.stbtt_PackFontRange;
+import static org.lwjgl.stb.STBTruetype.stbtt_PackSetOversampling;
 
 import dev.dvh.raster.lua.LuaJit;
 import dev.dvh.raster.lua.LuaValue;
@@ -71,7 +76,8 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.stb.STBTTBakedChar;
+import org.lwjgl.stb.STBTTPackContext;
+import org.lwjgl.stb.STBTTPackedchar;
 
 public final class DebugModule implements AutoCloseable {
 
@@ -203,11 +209,11 @@ public final class DebugModule implements AutoCloseable {
       if (codepoint < FIRST_CHAR || codepoint >= FIRST_CHAR + CHAR_COUNT) {
         codepoint = '?';
       }
-      STBTTBakedChar glyph = font.characters.get(codepoint - FIRST_CHAR);
-      float x0 = Math.round(cursorX + glyph.xoff() * scale);
-      float y0 = Math.round(cursorY + glyph.yoff() * scale);
-      float x1 = Math.round(x0 + (glyph.x1() - glyph.x0()) * scale);
-      float y1 = Math.round(y0 + (glyph.y1() - glyph.y0()) * scale);
+      STBTTPackedchar glyph = font.characters.get(codepoint - FIRST_CHAR);
+      float x0 = cursorX + glyph.xoff() * scale;
+      float y0 = cursorY + glyph.yoff() * scale;
+      float x1 = cursorX + glyph.xoff2() * scale;
+      float y1 = cursorY + glyph.yoff2() * scale;
       float u0 = glyph.x0() / (float) ATLAS_SIZE;
       float v0 = glyph.y0() / (float) ATLAS_SIZE;
       float u1 = glyph.x1() / (float) ATLAS_SIZE;
@@ -223,9 +229,11 @@ public final class DebugModule implements AutoCloseable {
       data.put(value);
     }
     data.flip();
+    boolean blendWasEnabled = glIsEnabled(GL_BLEND);
+    boolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(org.lwjgl.opengl.GL11.GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);
     glUseProgram(program);
     glUniform2f(viewportUniform, width, height);
     glUniform4f(colorUniform, red, green, blue, alpha);
@@ -239,6 +247,12 @@ public final class DebugModule implements AutoCloseable {
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(0);
+    if (!blendWasEnabled) {
+      glDisable(GL_BLEND);
+    }
+    if (depthWasEnabled) {
+      glEnable(GL_DEPTH_TEST);
+    }
   }
 
   private void ensureGlObjects() {
@@ -390,7 +404,7 @@ public final class DebugModule implements AutoCloseable {
 
   private static final class Font implements AutoCloseable {
     private final String resource;
-    private STBTTBakedChar.Buffer characters;
+    private STBTTPackedchar.Buffer characters;
     private int texture;
 
     private Font(String resource) {
@@ -403,20 +417,35 @@ public final class DebugModule implements AutoCloseable {
       }
       ByteBuffer font = resourceBuffer(resource);
       ByteBuffer bitmap = BufferUtils.createByteBuffer(ATLAS_SIZE * ATLAS_SIZE);
-      characters = STBTTBakedChar.malloc(CHAR_COUNT);
-      int bottomY =
-          stbtt_BakeFontBitmap(
-              font, BAKED_SIZE, bitmap, ATLAS_SIZE, ATLAS_SIZE, FIRST_CHAR, characters);
-      if (bottomY <= 0) {
-        throw new IllegalStateException("Unable to bake debug font atlas: " + resource);
+      characters = STBTTPackedchar.malloc(CHAR_COUNT);
+      STBTTPackContext context = STBTTPackContext.malloc();
+      boolean packed;
+      boolean begun = false;
+      try {
+        if (!stbtt_PackBegin(context, bitmap, ATLAS_SIZE, ATLAS_SIZE, 0, 1)) {
+          throw new IllegalStateException("Unable to begin debug font packing: " + resource);
+        }
+        begun = true;
+        stbtt_PackSetOversampling(context, 2, 2);
+        packed = stbtt_PackFontRange(context, font, 0, BAKED_SIZE, FIRST_CHAR, characters);
+      } finally {
+        if (begun) {
+          stbtt_PackEnd(context);
+        }
+        context.free();
+      }
+      if (!packed) {
+        characters.free();
+        characters = null;
+        throw new IllegalStateException("Unable to pack debug font atlas: " + resource);
       }
       texture = glGenTextures();
       glBindTexture(GL_TEXTURE_2D, texture);
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
       glTexImage2D(
           GL_TEXTURE_2D, 0, GL_R8, ATLAS_SIZE, ATLAS_SIZE, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
       glTexParameteri(GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
       glBindTexture(GL_TEXTURE_2D, 0);

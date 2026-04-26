@@ -23,6 +23,12 @@ After packaging, run a project with the executable JAR:
 __GL_THREADED_OPTIMIZATIONS=0 java --enable-native-access=ALL-UNNAMED -jar target/raster-0.1.0-SNAPSHOT.jar path/to/game
 ```
 
+Run the JAR with no project path to launch Raster's built-in hello demo:
+
+```sh
+__GL_THREADED_OPTIMIZATIONS=0 java --enable-native-access=ALL-UNNAMED -jar target/raster-0.1.0-SNAPSHOT.jar
+```
+
 Raster also accepts a single Lua file as the entry point, and game arguments can
 be separated with `--`:
 

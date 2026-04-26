@@ -23,4 +23,7 @@ blending, depth testing, culling, point/line sizing, and explicit matrix upload.
   strips.
 - `08-stress-grid`: many immediate-mode quads with animated colors.
 - `09-debug-text`: `rs.debug.print` text overlay rendered on top of GL output.
+- `10-input-paint`: mouse position/buttons, alpha trails, and debug text.
+- `11-state-isolation`: explicit blend/depth state toggles in one frame.
+- `12-error-page`: intentionally crashes to exercise the runtime error page.
 

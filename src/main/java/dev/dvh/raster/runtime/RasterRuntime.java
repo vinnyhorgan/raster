@@ -19,6 +19,8 @@ import dev.dvh.raster.tools.Stylua;
 import dev.dvh.raster.vfs.VirtualFileSystem;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -38,9 +40,13 @@ public final class RasterRuntime {
   }
 
   public void run() {
-    Selene.check(options.sourceDirectory());
-    Stylua.check(options.sourceDirectory());
-    VirtualFileSystem filesystem = new VirtualFileSystem(options.sourceDirectory());
+    Path sourceDirectory =
+        options.builtinDemo() ? createBuiltinDemoDirectory() : options.sourceDirectory();
+    if (!options.builtinDemo()) {
+      Selene.check(sourceDirectory);
+      Stylua.check(sourceDirectory);
+    }
+    VirtualFileSystem filesystem = new VirtualFileSystem(sourceDirectory);
     try (LuaJit lua = LuaJit.create()) {
       install(lua, filesystem);
       executeResource(lua, "rs.lua");
@@ -70,6 +76,30 @@ public final class RasterRuntime {
       debug.close();
       gl.close();
       window.close();
+    }
+  }
+
+  private static Path createBuiltinDemoDirectory() {
+    try {
+      Path directory = Files.createTempDirectory("raster-demo-");
+      copyDemoResource("conf.lua", directory.resolve("conf.lua"));
+      copyDemoResource("main.lua", directory.resolve("main.lua"));
+      directory.toFile().deleteOnExit();
+      directory.resolve("conf.lua").toFile().deleteOnExit();
+      directory.resolve("main.lua").toFile().deleteOnExit();
+      return directory;
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to create built-in Raster demo", e);
+    }
+  }
+
+  private static void copyDemoResource(String name, Path target) throws IOException {
+    String path = "/raster/demo/" + name;
+    try (InputStream input = RasterRuntime.class.getResourceAsStream(path)) {
+      if (input == null) {
+        throw new IllegalStateException("Missing built-in Raster demo resource: " + path);
+      }
+      Files.copy(input, target);
     }
   }
 

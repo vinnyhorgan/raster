@@ -10,9 +10,9 @@ and callback layer.
 
 - Entry point: `src/main/java/dev/dvh/raster/Main.java` delegates to
   `dev.dvh.raster.cli.RasterCli`.
-- CLI parsing: `src/main/java/dev/dvh/raster/cli/RasterCli.java` accepts an
-  optional project directory or single `.lua` file, then separates game args
-  after `--`.
+- CLI parsing: `src/main/java/dev/dvh/raster/cli/RasterCli.java` accepts a
+  project directory or single `.lua` file, starts a built-in demo when omitted,
+  then separates game args after `--`.
 - Runtime orchestration: `src/main/java/dev/dvh/raster/runtime/RasterRuntime.java`
   runs Selene and StyLua checks, creates the VFS, installs Java modules into
   Lua, loads embedded Lua resources, creates the window, runs `rs.load`, then
@@ -24,7 +24,8 @@ and callback layer.
 - Runtime Lua layer: `src/main/resources/raster/lua/rs.lua`,
   `rs_boot.lua`, `rs_callbacks.lua`, `inspect.lua`, and bundled `compat53`.
 - Java-backed modules: `src/main/java/dev/dvh/raster/modules/*Module.java`,
-  including the initial OpenGL 1.1-style `GlModule` behind `rs.gl`.
+  including the initial OpenGL 1.1-style `GlModule` behind `rs.gl` and the
+  diagnostic-only `DebugModule` behind `rs.debug`.
 - VFS implementation: `src/main/java/dev/dvh/raster/vfs/VirtualFileSystem.java`.
 - Embedded tools: `src/main/resources/raster/tools/linux-x64/stylua`, `selene`,
   and `raster/tools/raster.yml`.
@@ -35,19 +36,26 @@ and callback layer.
 ## What The Runtime Does Today
 
 - A Raster project is a directory containing `main.lua`, or a single Lua file.
+  Running with no project path launches the bundled hello demo in
+  `src/main/resources/raster/demo`.
 - Before startup, project Lua files are checked with embedded Selene and StyLua.
 - `rs.boot` loads optional `conf.lua`, calls `rs.conf(config)` when present,
-  sets the filesystem identity, loads `main.lua`, snapshots callbacks with
-  `rs.createhandlers`, and returns config to Java.
+  sets the filesystem identity, and returns config to Java. After the OpenGL
+  window exists, Java calls `rs.__loadMain(mainfile)` to load `main.lua` and
+  snapshot callbacks with `rs.createhandlers`, allowing load errors to render
+  in-window.
 - Java creates a GLFW/OpenGL window from the returned config and then runs:
   `rs.__runLoad(args, rawargs)`, event dispatch through `rs.__dispatch`,
   `rs.__update(dt)`, `rs.__draw()`, buffer swap, and a small timer sleep.
 - Current exposed modules include `rs.window`, `rs.timer`, `rs.system`,
-  `rs.mouse`, `rs.keyboard`, `rs.filesystem`, and `rs.gl`.
+  `rs.mouse`, `rs.keyboard`, `rs.filesystem`, `rs.gl`, and `rs.debug`.
 - `rs.gl` currently implements the immediate-mode foundation with modern
   OpenGL objects: shader program, VAO/VBO upload, color/vertex calls, matrix
   stacks, clear/viewport, and common depth/blend/cull state. It is not a full
   OpenGL 1.1 compatibility layer yet.
+- `rs.debug.print`/`rs.debug.text` render diagnostic Inter text using LWJGL STB
+  TrueType packed glyph atlases. Text rendering is intentionally not a core
+  fantasy API.
 - The VFS reads from mounted project roots first and the save directory second;
   writes always go to the save directory under XDG data or `~/.local/share`.
 
@@ -61,6 +69,8 @@ and callback layer.
 - Runtime/dev command: `mvn process-classes exec:exec -Dexec.args="path/to/game"`.
 - Packaged run command needs native access:
   `__GL_THREADED_OPTIMIZATIONS=0 java --enable-native-access=ALL-UNNAMED -jar target/raster-0.1.0-SNAPSHOT.jar path/to/game`.
+- Omit the project path in the packaged run command to launch the built-in hello
+  demo.
 - Linux x64 is currently assumed for bundled LWJGL natives, LuaJIT, StyLua, and
   Selene. Cross-platform behavior is not implemented yet.
 - There is currently no `src/test` tree; if you add behavior, prefer adding
