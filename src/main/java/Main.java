@@ -1,5 +1,5 @@
 public class Main {
-    public static void main(String[] args) {
-        System.out.println("raster: A fantasy runtime");
-    }
+  public static void main(String[] args) {
+    System.out.println("raster: A fantasy runtime");
+  }
 }

@@ -21,6 +21,20 @@ Build the project:
 mvn package
 ```
 
+Check formatting:
+
+```sh
+mvn validate
+```
+
+Apply formatting:
+
+```sh
+mvn spotless:apply
+```
+
+Formatting is enforced by Spotless during Maven's `validate` phase. Java sources are formatted with `google-java-format`, and `pom.xml` is formatted with SortPom.
+
 Run the packaged jar:
 
 ```sh
