@@ -237,6 +237,7 @@
             </includes>
             <excludes>
               <exclude>lua-compat-5.3/**</exclude>
+              <exclude>fontstash/**</exclude>
             </excludes>
             <flexmark/>
           </markdown>
