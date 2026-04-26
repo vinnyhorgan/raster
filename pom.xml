@@ -127,7 +127,15 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.6.2</version>
         <configuration>
-          <mainClass>${main.class}</mainClass>
+          <executable>java</executable>
+          <arguments>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>${main.class}</argument>
+          </arguments>
+          <environmentVariables>
+            <__GL_THREADED_OPTIMIZATIONS>0</__GL_THREADED_OPTIMIZATIONS>
+          </environmentVariables>
         </configuration>
       </plugin>
       <plugin>

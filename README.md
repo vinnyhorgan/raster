@@ -12,7 +12,7 @@ A fantasy runtime
 Run the project:
 
 ```sh
-mvn compile exec:java
+mvn compile exec:exec
 ```
 
 Build the project:
@@ -38,7 +38,7 @@ Formatting is enforced by Spotless during Maven's `validate` phase. Java sources
 Run the packaged jar:
 
 ```sh
-java -jar target/raster-0.1.0-SNAPSHOT.jar
+__GL_THREADED_OPTIMIZATIONS=0 java -jar target/raster-0.1.0-SNAPSHOT.jar
 ```
 
 ## Stack
