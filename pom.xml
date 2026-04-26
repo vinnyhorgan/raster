@@ -8,7 +8,7 @@
     <artifactId>raster</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <name>raster</name>
-    <description>Minimal Java 26 Maven starter.</description>
+    <description>A fantasy runtime</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

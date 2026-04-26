@@ -1,6 +1,6 @@
 # raster
 
-Minimal Java 26 Maven starter.
+A fantasy runtime
 
 ## Requirements
 
@@ -26,3 +26,10 @@ Run the packaged jar:
 ```sh
 java -jar target/raster-0.1.0-SNAPSHOT.jar
 ```
+
+## Stack
+
+- Java 26
+- Maven
+- LWJGL 3
+- JOML
