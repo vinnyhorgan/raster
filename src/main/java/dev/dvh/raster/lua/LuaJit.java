@@ -7,7 +7,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public final class LuaJit implements AutoCloseable {
 
@@ -20,6 +22,8 @@ public final class LuaJit implements AutoCloseable {
   }
 
   private long handle;
+  private final Map<Integer, LuaFunction> functions = new HashMap<>();
+  private int nextFunctionId = 1;
 
   private LuaJit(long handle) {
     this.handle = handle;
@@ -60,6 +64,29 @@ public final class LuaJit implements AutoCloseable {
       throw new NullPointerException("source");
     }
     execute(handle, source, chunkName == null ? "=(java)" : chunkName);
+  }
+
+  public synchronized LuaValue[] call(String expression, LuaValue... arguments) {
+    ensureOpen();
+    if (expression == null) {
+      throw new NullPointerException("expression");
+    }
+    LuaValue[] values = arguments == null ? new LuaValue[0] : arguments;
+    Object[] result = call(handle, expression, values);
+    return toValues(result);
+  }
+
+  public synchronized void registerFunction(String qualifiedName, LuaFunction function) {
+    ensureOpen();
+    if (qualifiedName == null) {
+      throw new NullPointerException("qualifiedName");
+    }
+    if (function == null) {
+      throw new NullPointerException("function");
+    }
+    int id = nextFunctionId++;
+    functions.put(id, function);
+    registerFunction(handle, this, id, qualifiedName);
   }
 
   public synchronized void setGlobal(String name, String value) {
@@ -114,7 +141,30 @@ public final class LuaJit implements AutoCloseable {
     }
     long state = handle;
     handle = 0;
+    functions.clear();
     close(state);
+  }
+
+  private Object[] invoke(int functionId, Object[] arguments) {
+    LuaFunction function = functions.get(functionId);
+    if (function == null) {
+      throw new LuaJitException("Unknown Java Lua function id: " + functionId);
+    }
+    LuaValue[] values = toValues(arguments);
+    LuaValue[] result = function.call(values);
+    return result == null ? new LuaValue[0] : result;
+  }
+
+  private static LuaValue[] toValues(Object[] arguments) {
+    if (arguments == null || arguments.length == 0) {
+      return new LuaValue[0];
+    }
+    LuaValue[] values = new LuaValue[arguments.length];
+    for (int i = 0; i < arguments.length; i++) {
+      Object argument = arguments[i];
+      values[i] = argument instanceof LuaValue luaValue ? luaValue : LuaValue.nil();
+    }
+    return values;
   }
 
   private void ensureOpen() {
@@ -139,6 +189,11 @@ public final class LuaJit implements AutoCloseable {
   private static native void openLibraries(long state);
 
   private static native void execute(long state, byte[] source, String chunkName);
+
+  private static native Object[] call(long state, String expression, LuaValue[] arguments);
+
+  private static native void registerFunction(
+      long state, LuaJit owner, int functionId, String qualifiedName);
 
   private static native void setGlobalNil(long state, String name);
 

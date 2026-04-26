@@ -11,10 +11,30 @@ A fantasy runtime
 
 ## Usage
 
-Run the project:
+Run a Raster project from a directory containing `main.lua`:
 
 ```sh
-mvn process-classes exec:exec
+mvn process-classes exec:exec -Dexec.args="path/to/game"
+```
+
+After packaging, run a project with the executable JAR:
+
+```sh
+__GL_THREADED_OPTIMIZATIONS=0 java --enable-native-access=ALL-UNNAMED -jar target/raster-0.1.0-SNAPSHOT.jar path/to/game
+```
+
+Raster also accepts a single Lua file as the entry point, and game arguments can
+be separated with `--`:
+
+```sh
+raster path/to/game -- player-name hard-mode
+```
+
+Useful CLI options:
+
+```sh
+raster --help
+raster --version
 ```
 
 Build the project:
@@ -27,6 +47,38 @@ This creates a self-contained, executable distribution JAR at
 `target/raster-0.1.0-SNAPSHOT.jar`. It includes runtime dependencies and LWJGL
 Linux natives, plus the LuaJIT JNI runtime for Linux x64, so it can be run
 without assembling a separate classpath.
+
+## Lua Projects
+
+Raster exposes a Love-like global namespace named `rs`:
+
+```lua
+function rs.load(args, rawargs)
+  local major, minor, revision, codename = rs.getVersion()
+  print("Raster", major, minor, revision, codename)
+end
+
+function rs.update(dt)
+  if rs.keyboard.isDown("escape") then
+    rs.window.close()
+  end
+end
+```
+
+Optional `conf.lua` files can configure the first window before `main.lua` is
+loaded:
+
+```lua
+function rs.conf(t)
+  t.identity = "mygame"
+  t.window.title = "My Game"
+  t.window.width = 1280
+  t.window.height = 720
+end
+```
+
+Initial modules include `rs.window`, `rs.timer`, `rs.system`, `rs.mouse`,
+`rs.keyboard`, and `rs.filesystem`.
 
 ## LuaJIT
 
