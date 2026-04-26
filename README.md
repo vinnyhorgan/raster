@@ -33,7 +33,7 @@ Apply formatting:
 mvn spotless:apply
 ```
 
-Formatting is enforced by Spotless during Maven's `validate` phase. Java sources are formatted with `google-java-format`, and `pom.xml` is formatted with SortPom.
+Formatting is enforced by Spotless during Maven's `validate` phase. Java sources are formatted with `google-java-format`, Markdown files are formatted with Flexmark, and `pom.xml` is formatted with SortPom.
 
 Run the packaged jar:
 
@@ -47,3 +47,4 @@ java -jar target/raster-0.1.0-SNAPSHOT.jar
 - Maven
 - LWJGL 3
 - JOML
+
