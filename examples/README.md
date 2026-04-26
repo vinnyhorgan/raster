@@ -6,6 +6,10 @@ Each folder is a standalone Raster project. Run one with:
 mvn process-classes exec:exec -Dexec.args="examples/01-primitives"
 ```
 
+The runtime always renders to a fixed 640x480 logical canvas and letterboxes it
+when the OS window is resized. Each example resets `gl.viewport` from
+`rs.window.getDimensions()` every frame so it stays inside that canvas.
+
 The examples intentionally cover the currently implemented `rs.gl` foundation:
 immediate-mode primitives, colors, matrix transforms, matrix stacks, viewport,
 blending, depth testing, culling, point/line sizing, and explicit matrix upload.

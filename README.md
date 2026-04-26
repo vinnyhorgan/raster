@@ -71,15 +71,15 @@ function rs.update(dt)
 end
 ```
 
-Optional `conf.lua` files can configure the first window before `main.lua` is
-loaded:
+Optional `conf.lua` files can configure project identity, window title,
+visibility, and vsync before `main.lua` is loaded. Raster always renders to a
+fixed 640x480 canvas; the OS window starts at 640x480, is always resizable, and
+letterboxes the canvas with black borders when resized.
 
 ```lua
 function rs.conf(t)
   t.identity = "mygame"
   t.window.title = "My Game"
-  t.window.width = 1280
-  t.window.height = 720
 end
 ```
 

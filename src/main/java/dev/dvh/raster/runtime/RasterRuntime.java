@@ -133,6 +133,7 @@ public final class RasterRuntime {
       double delta = timer.step();
       try {
         lua.call("rs.__update", LuaValue.number(delta));
+        window.beginFrame();
         lua.call("rs.__draw");
       } catch (LuaJitException e) {
         errorLoop(e.getMessage());
@@ -150,7 +151,8 @@ public final class RasterRuntime {
       if (window.shouldClose() || window.isKeyDown(GLFW_KEY_ESCAPE)) {
         window.closeWindow();
       }
-      debug.renderError(window.getWidth(), window.getHeight(), message);
+      window.beginFrame();
+      debug.renderError(WindowModule.LOGICAL_WIDTH, WindowModule.LOGICAL_HEIGHT, message);
       window.present();
       sleepQuietly(16);
     }
@@ -246,12 +248,11 @@ public final class RasterRuntime {
 
   private static LuaValue defaultWindow() {
     Map<String, LuaValue> window = new LinkedHashMap<>();
-    window.put("width", LuaValue.number(800));
-    window.put("height", LuaValue.number(600));
+    window.put("width", LuaValue.number(WindowModule.LOGICAL_WIDTH));
+    window.put("height", LuaValue.number(WindowModule.LOGICAL_HEIGHT));
     window.put("title", LuaValue.string("Raster"));
     window.put("visible", LuaValue.bool(true));
     window.put("vsync", LuaValue.bool(true));
-    window.put("resizable", LuaValue.bool(true));
     return LuaValue.table(window);
   }
 

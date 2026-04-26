@@ -47,6 +47,10 @@ and callback layer.
 - Java creates a GLFW/OpenGL window from the returned config and then runs:
   `rs.__runLoad(args, rawargs)`, event dispatch through `rs.__dispatch`,
   `rs.__update(dt)`, `rs.__draw()`, buffer swap, and a small timer sleep.
+- Rendering is fixed at a logical 640x480. `WindowModule` binds a 640x480 FBO
+  before Lua drawing, then upscales it into the resizable OS window with
+  aspect-preserving letterbox borders. Window size/resizability config is
+  intentionally ignored; `rs.window.getDimensions()` reports 640x480.
 - Current exposed modules include `rs.window`, `rs.timer`, `rs.system`,
   `rs.mouse`, `rs.keyboard`, `rs.filesystem`, `rs.gl`, and `rs.debug`.
 - `rs.gl` currently implements the immediate-mode foundation with modern
